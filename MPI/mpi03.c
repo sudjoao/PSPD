@@ -6,14 +6,15 @@
 #define MESSAGE_SIZE 1
 #define TAG 0
 
-void receive_and_print_message(int rank){
+int receive_and_print_message(int rank){
     int received_msg;
     MPI_Status status;
-    MPI_Recv(&received_msg, MESSAGE_SIZE, MPI_INT, rank == -1? MPI_ANY_TAG : rank, TAG, MPI_COMM_WORLD,  &status);
+    MPI_Recv(&received_msg, MESSAGE_SIZE, MPI_INT, rank == -1? MPI_ANY_SOURCE : rank, TAG, MPI_COMM_WORLD,  &status);
     printf("Processo %d  enviou o número: %d\n", status.MPI_SOURCE, received_msg);
+    return received_msg;
 }
 int main(int argc, char * argv[]){
-    int my_rank, nprocess, tag = 0;
+    int my_rank, nprocess;
     int received_msg, sended_value = 17;
     MPI_Init(&argc, &argv);
 
@@ -23,10 +24,13 @@ int main(int argc, char * argv[]){
     if(!my_rank){
         for(int i=1; i<nprocess; i++){
             int specif_value = sended_value * i;
-            MPI_Send(&specif_value, MESSAGE_SIZE, MPI_INT, i, tag, MPI_COMM_WORLD);
+            MPI_Send(&specif_value, MESSAGE_SIZE, MPI_INT, i, TAG, MPI_COMM_WORLD);
+            receive_and_print_message(-1);
         }
     } else {
-        receive_and_print_message(MASTER_RANK);
+        int received_value = receive_and_print_message(MASTER_RANK);
+        int new_value = received_value + 2;
+        MPI_Send(&new_value, MESSAGE_SIZE, MPI_INT, MASTER_RANK, TAG, MPI_COMM_WORLD);
     }
 
     MPI_Finalize();
